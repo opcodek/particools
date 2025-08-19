@@ -11,22 +11,36 @@ class clsParticle{
   constructor(fltX,fltY,objCfg){
     this.fltX=fltX
     this.fltY=fltY
-    this.fltVX=(Math.random()*2-1)*objCfg.spd
-    this.fltVY=(Math.random()*2-1)*objCfg.spd
+    let ang=Math.random()*Math.PI*2
+    let spd=Math.random()*objCfg.spd
+    this.fltVX=Math.cos(ang)*spd
+    this.fltVY=Math.sin(ang)*spd
     this.fltS=objCfg.siz
     this.intL=objCfg.lif
     this.objCfg=objCfg
   }
   upd(){
+    if(this.objCfg.grav){this.fltVY+=0.05}
     this.fltX+=this.fltVX
     this.fltY+=this.fltVY
     this.intL--
   }
   drw(){
-    objCtx.beginPath()
-    objCtx.arc(this.fltX,this.fltY,this.fltS,0,Math.PI*2)
     objCtx.fillStyle=this.objCfg.col
-    objCtx.fill()
+    if(this.objCfg.shape==="circle"){
+      objCtx.beginPath()
+      objCtx.arc(this.fltX,this.fltY,this.fltS,0,Math.PI*2)
+      objCtx.fill()
+    }else if(this.objCfg.shape==="square"){
+      objCtx.fillRect(this.fltX-this.fltS,this.fltY-this.fltS,this.fltS*2,this.fltS*2)
+    }else if(this.objCfg.shape==="triangle"){
+      objCtx.beginPath()
+      objCtx.moveTo(this.fltX,this.fltY-this.fltS)
+      objCtx.lineTo(this.fltX-this.fltS,this.fltY+this.fltS)
+      objCtx.lineTo(this.fltX+this.fltS,this.fltY+this.fltS)
+      objCtx.closePath()
+      objCtx.fill()
+    }
   }
 }
 
@@ -58,22 +72,40 @@ let objGuiCfg={
   col:"#00ffff",
   lif:100,
   rate:0.5,
+  grav:false,
+  shape:"circle",
+  trail:0.3,
   add:function(){
     arrSystems.push(new clsSystem(intW/2,intH/2,{...objGuiCfg}))
+  },
+  preset:function(p){
+    if(p==="fire"){this.col="#ff6600";this.spd=3;this.lif=60;this.trail=0.2}
+    if(p==="snow"){this.col="#ffffff";this.spd=1;this.lif=200;this.trail=0.05;this.shape="circle";this.grav=true}
+    if(p==="neon"){this.col="#ff00ff";this.spd=4;this.lif=120;this.trail=0.4}
+    if(p==="galaxy"){this.col="#00ffff";this.spd=2;this.lif=150;this.trail=0.25;this.shape="triangle"}
   }
 }
 
-let gui=new dat.GUI()
+let gui=new dat.GUI({autoPlace:true})
 gui.width=300
 gui.add(objGuiCfg,"siz",1,20,1)
 gui.add(objGuiCfg,"spd",0.1,10,0.1)
 gui.addColor(objGuiCfg,"col")
 gui.add(objGuiCfg,"lif",10,500,1)
 gui.add(objGuiCfg,"rate",0,1,0.01)
+gui.add(objGuiCfg,"grav")
+gui.add(objGuiCfg,"shape",["circle","square","triangle"])
+gui.add(objGuiCfg,"trail",0,1,0.01)
 gui.add(objGuiCfg,"add")
+gui.add(objGuiCfg,"preset",["fire","snow","neon","galaxy"])
+
+document.getElementById("btnMenu").onclick=function(){
+  let domGui=document.querySelector(".dg.ac")
+  domGui.style.display=(domGui.style.display==="none")?"block":"none"
+}
 
 function loop(){
-  objCtx.fillStyle="rgba(13,13,13,0.3)"
+  objCtx.fillStyle="rgba(13,13,13,"+objGuiCfg.trail+")"
   objCtx.fillRect(0,0,intW,intH)
   for(let objS of arrSystems){
     objS.upd()
@@ -90,4 +122,20 @@ window.addEventListener("resize",()=>{
   intH=window.innerHeight
   objCnv.width=intW
   objCnv.height=intH
+})
+
+objCnv.addEventListener("click",(e)=>{
+  let rect=objCnv.getBoundingClientRect()
+  let x=e.clientX-rect.left
+  let y=e.clientY-rect.top
+  arrSystems.push(new clsSystem(x,y,{...objGuiCfg}))
+})
+
+objCnv.addEventListener("touchstart",(e)=>{
+  let rect=objCnv.getBoundingClientRect()
+  for(let t of e.touches){
+    let x=t.clientX-rect.left
+    let y=t.clientY-rect.top
+    arrSystems.push(new clsSystem(x,y,{...objGuiCfg}))
+  }
 })
